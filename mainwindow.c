@@ -126,7 +126,7 @@ static gboolean graph_draw (GtkWidget *widget, cairo_t *cr, gpointer user_data)
 
 	/* Change the transformation matrix */
 	cairo_scale (cr, (gdouble)width/SAMPLES_N, ((gdouble)height)/-(256+5.0));
-	cairo_translate (cr, 0, -128.0+2.5);
+	cairo_translate (cr, 0, -128.0-2.5);
 
 	/* Determine the data points to calculate (ie. those in the clipping zone */
 	//cairo_device_to_user_distance (cr, &dx, &dy);
@@ -137,10 +137,10 @@ static gboolean graph_draw (GtkWidget *widget, cairo_t *cr, gpointer user_data)
 
 	cairo_set_source_rgb (cr, 0.0, 1.0, 0.0);
 
-	cairo_move_to (cr, 0.0, (gdouble)samples[0]/SAMPLES_N);
+	cairo_move_to (cr, 0.0, (gdouble)samples[0]/256);
 	for (i=0; i < SAMPLES_N; i++)
 	{
-		cairo_line_to (cr, i, (gdouble)samples[i]/SAMPLES_N);
+		cairo_line_to (cr, i, (gdouble)samples[i]/256);
 	}
 
 	cairo_stroke (cr);
@@ -162,19 +162,16 @@ void ay_driver_frame(int16_t *buf, int buflen)
 
 void mainwindow_getsound (void *data, size_t bytes)
 {
-	int i;
 	int16_t *output = data;
-	size_t size;
 
-	int count = bytes/4;
-
-	while (count)
+	while (bytes)
 	{
 		if (!lastbuflen)
 		{
+			int i;
 			struct ay_driver_frame_state_t states;
 			int smallestvalue=65536;
-			int smallestat = 0;
+			int smallestat = -1;
 			int prev = 65536;
 
 			sound_frame (&states);
@@ -205,10 +202,11 @@ void mainwindow_getsound (void *data, size_t bytes)
 		}
 
 		output[0] = output[1] = ((int)lastbuf[0] + lastbuf[1] + lastbuf[2]) / 3;
-		output+=2;
-		lastbuf+=6;
+
+		output += 2;
+		bytes -= 4;
+		lastbuf += 6;
 		lastbuflen--;
-		count--;
 	}
 }
 
@@ -216,7 +214,7 @@ void mainwindow_getsound (void *data, size_t bytes)
 static gboolean window_delete (GtkWidget *object,
                                gpointer   userpointer)
 {
-	sidpulse_done ();
+	pulse_done ();
 	return FALSE;
 }
 
@@ -227,7 +225,7 @@ activate (GtkApplication* app,
 	GtkWidget *window, *thegrid;
 	int i;
 
-	sidpulse_init ();
+	pulse_init ();
 
 	sound_init ();
 
@@ -393,7 +391,7 @@ activate (GtkApplication* app,
 	gtk_grid_attach (GTK_GRID (thegrid), graph, 2, 0, 1, 3);
 	g_signal_connect (graph, "draw", G_CALLBACK (graph_draw), NULL);
 
-	gtk_widget_set_size_request (graph, 256, 256);
+	gtk_widget_set_size_request (graph, 512, 256);
 	
 	gtk_widget_show_all (window);
 
@@ -423,7 +421,7 @@ main (int    argc,
 
 	sound_end ();
 
-	sidpulse_done ();
+	pulse_done ();
 
 	return status;
 }

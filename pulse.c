@@ -24,7 +24,7 @@ void stream_write_cb(pa_stream *stream, size_t length, void *userdata)
 
 	if (pa_stream_write(pas, data, length, NULL, 0, PA_SEEK_RELATIVE) < 0)
 	{
-		fprintf (stderr, "sidpulse_write: pa_stream_write() failed\n");
+		fprintf (stderr, "stream_write_cb: pa_stream_write() failed\n");
 	}
 }
 
@@ -33,8 +33,6 @@ void start_stream (void)
 	pa_buffer_attr bufattr;
 	pa_sample_spec pa_c = {};
 
-	fprintf (stderr, "sidpulse: start_stream\n");
-
 	pa_c.channels = 2;
 	pa_c.rate = 44100;
 	pa_c.format = PA_SAMPLE_S16NE;
@@ -42,10 +40,11 @@ void start_stream (void)
 	bufattr.maxlength = (uint32_t)-1;
 	bufattr.tlength = 44100/10;
 	bufattr.prebuf = -1;
-	bufattr.minreq = 2*44100/25;
+	bufattr.minreq = -1;
+	bufattr.fragsize = -1;
 
 	pas = pa_stream_new (pa_ctx,
-	                     "SIDsynth",
+	                     "AYsynth",
         	             &pa_c,
                 	     NULL);
 
@@ -55,7 +54,7 @@ void start_stream (void)
 	{
     		if (pa_stream_connect_playback (pas, NULL, 0, PA_STREAM_INTERPOLATE_TIMING | PA_STREAM_AUTO_TIMING_UPDATE, NULL, NULL))
 		{
-			fprintf (stderr, "sidpulse_prewrite: pa_stream_connect_playback() failed\n");
+			fprintf (stderr, "start_stream: pa_stream_connect_playback() failed\n");
 
 			pa_stream_unref (pas);
 			pas = 0;
@@ -71,7 +70,7 @@ void pa_state_cb(pa_context *c, void *userdata)
 	pa_context_state_t state;
 	state = pa_context_get_state(c);
 
-	fprintf (stderr, "sidpulse: state=%d\n", state);
+	fprintf (stderr, "pa_state_cb: state=%d\n", state);
 
 	switch  (state)
 	{
@@ -92,7 +91,7 @@ void pa_state_cb(pa_context *c, void *userdata)
 }
 
 
-int sidpulse_init (void)
+int pulse_init (void)
 {
 	int err = 0;
 
@@ -102,7 +101,7 @@ int sidpulse_init (void)
 
 	if (pa_context_connect (pa_ctx, NULL, PA_CONTEXT_NOFLAGS, NULL))
 	{
-		fprintf (stderr, "sidpulse_init: pa_context_connect() failed\n");
+		fprintf (stderr, "pulse_init: pa_context_connect() failed\n");
 		pa_context_unref (pa_ctx);
 		pa_ctx = NULL;
 	}
@@ -114,13 +113,13 @@ int sidpulse_init (void)
 	return 0;
 }
 
-void sidpulse_done (void)
+void pulse_done (void)
 {
 	if (pas)
 	{
 		if (pa_stream_disconnect (pas))
 		{
-			fprintf (stderr, "sidpulse_done: pa_stream_disconnect() failed\n");
+			fprintf (stderr, "pulse_done: pa_stream_disconnect() failed\n");
 		}
 
 		pa_stream_unref (pas);

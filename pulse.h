@@ -1,8 +1,8 @@
 #ifndef _PULSE_H
 #define _PULSE_H 1
 
-int sidpulse_init (void);
+int pulse_init (void);
 void mainwindow_getsound (void *data, size_t bytes);
-void sidpulse_done (void);
+void pulse_done (void);
 
 #endif
